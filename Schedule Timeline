@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Employee Schedule Timeline</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Arial,sans-serif}
+  html,body{overflow-x:hidden;width:100%}
+  body{background:#f1f5f9;padding:8px;color:#1e293b}
+  .container{max-width:100%;margin:auto}
+  h1{font-size:19px}
+  .card{background:white;border-radius:10px;padding:12px;box-shadow:0 2px 8px rgba(0,0,0,.05);margin-bottom:10px;width:100%}
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+  label{font-size:11px;font-weight:700;color:#475569;display:block;margin-bottom:3px}
+  input,select{width:100%;padding:9px;border:1.5px solid #e2e8f0;border-radius:7px;outline:none;font-size:13px}
+  input.error{border-color:#ef4444 !important;background:#fef2f2}
+  .btn{grid-column:span 2;background:#4f46e5;color:white;border:none;padding:12px;border-radius:7px;font-weight:700;cursor:pointer;font-size:15px}
+  .totals{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:7px;margin-bottom:10px}
+  .total-box{background:white;border-radius:10px;padding:10px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.05)}
+  .total-box .num{font-size:22px;font-weight:800;line-height:1}
+  .total-box .lbl{font-size:10px;font-weight:700;color:#64748b;margin-top:4px;text-transform:uppercase}
+  .total-box.all{border-top:3px solid #1e293b} .total-box.all .num{color:#1e293b}
+  .total-box.shift{border-top:3px solid #2563eb} .total-box.shift .num{color:#2563eb}
+  .total-box.ot{border-top:3px solid #d97706} .total-box.ot .num{color:#d97706}
+  .total-box.off{border-top:3px solid #059669} .total-box.off .num{color:#059669}
+  .total-note{font-size:11px;color:#64748b;text-align:center;margin-top:-6px;margin-bottom:10px;font-weight:600}
+  .filters{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px}
+  .filter{padding:5px 9px;border-radius:20px;border:1px solid #e2e8f0;background:white;cursor:pointer;font-size:11px;font-weight:600}
+  .filter.active{background:#1e293b;color:white}
+  .search{width:100%;margin-bottom:8px;padding:8px;border:1.5px solid #e2e8f0;border-radius:7px}
+  .table-wrap{width:100%;overflow:visible}
+  table{width:100%;border-collapse:collapse;table-layout:fixed}
+  th{background:#f8fafc;text-align:left;padding:7px 3px;font-size:10px;color:#475569;border-bottom:2px solid #e2e8f0}
+  td{padding:9px 3px;border-bottom:1px solid #f1f5f9;vertical-align:middle;font-size:11px;line-height:1.3;word-break:break-word;overflow-wrap:anywhere}
+  th:nth-child(1),td:nth-child(1){width:10%}
+  th:nth-child(2),td:nth-child(2){width:20%}
+  th:nth-child(3),td:nth-child(3){width:16%}
+  th:nth-child(4),td:nth-child(4){width:24%}
+  th:nth-child(5),td:nth-child(5){width:15%}
+  th:nth-child(6),td:nth-child(6){width:15%}
+  .type{font-weight:700}
+  .type-shift{color:#2563eb} .type-ot{color:#d97706} .type-dayoff{color:#059669}
+  .empty{text-align:center;padding:14px;color:#94a3b8;font-size:12px}
+  .view-box{background:#eef2ff;border:1px solid #c7d2fe;padding:10px;border-radius:8px;margin-bottom:10px}
+  .view-title{font-size:12px;font-weight:800;margin-bottom:7px}
+  .pdf-row{display:flex;gap:5px;flex-wrap:wrap;align-items:center}
+  .btn-view{background:#1e293b;color:white;border:none;padding:9px 12px;border-radius:7px;font-weight:700;cursor:pointer;font-size:12px}
+  .btn-clear{background:#dc2626;color:white;border:none;padding:9px 12px;border-radius:7px;font-weight:700;cursor:pointer;font-size:12px}
+  .count{font-size:11px;color:#64748b;margin-top:6px}
+  #saveStatus{grid-column:span 2;text-align:center;font-size:13px;font-weight:700;padding:8px;border-radius:7px;display:none}
+  #saveStatus.ok{background:#dcfce7;color:#166534;display:block}
+  #saveStatus.err{background:#fee2e2;color:#991b1b;display:block}
+  .old-sched{color:#94a3b8;text-decoration:line-through;font-size:10px}
+  .new-sched{background:#fef08a;color:#854d0e;font-weight:800;padding:2px 4px;border-radius:4px;border:1px solid #facc15;font-size:11px;white-space:nowrap}
+  .new-badge{background:#22c55e;color:white;font-size:8px;font-weight:800;padding:2px 4px;border-radius:4px;margin-left:3px;vertical-align:middle}
+  tr.is-new{background:#fefce8 !important;animation:flash 1.2s ease}
+  @keyframes flash{0%{background:#fef08a}100%{background:#fefce8}}
+  .action-cell{display:flex;gap:3px}
+  .btn-edit{background:#dbeafe;color:#1d4ed8;border:none;padding:5px 4px;border-radius:5px;cursor:pointer;font-weight:700;font-size:10px;flex:1}
+  .btn-del{background:#fee2e2;color:#b91c1c;border:none;padding:5px 4px;border-radius:5px;cursor:pointer;font-weight:700;font-size:10px;flex:1}
+  #cancelEdit{grid-column:span 2;background:#64748b;color:white;border:none;padding:8px;border-radius:7px;font-weight:700;cursor:pointer;display:none;font-size:13px}
+  .sap-link{font-weight:700;font-size:11px;color:#0e7490;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+  .sap-link:hover{color:#155e75}
+  .pdf-by-name{background:white;border:1.5px solid #c7d2fe;border-radius:8px;padding:10px;margin-top:8px}
+  .pdf-by-name select{margin-bottom:8px;background:#fff}
+  .btn-pdf-name{background:#dc2626;color:white;border:none;padding:11px;border-radius:7px;font-weight:800;cursor:pointer;width:100%;font-size:14px}
+  .name-list{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px}
+  .name-chip{background:white;border:1px solid #c7d2fe;padding:6px 10px;border-radius:20px;cursor:pointer;font-size:11px;font-weight:700;color:#312e81}
+  .name-chip.active{background:#4f46e5;color:white;border-color:#4f46e5}
+  .modal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:99;padding:16px}
+  .modal.show{display:flex}
+  .modal-box{background:white;width:100%;max-width:340px;border-radius:12px;padding:18px}
+  .modal-box h2{font-size:18px;margin-bottom:4px}
+  .btn-confirm{background:#4f46e5;color:white;border:none;padding:11px;border-radius:7px;font-weight:800;cursor:pointer;width:100%;margin-top:12px;font-size:14px}
+  .btn-close{background:#f1f5f9;border:none;padding:8px;border-radius:7px;cursor:pointer;width:100%;margin-top:6px;font-weight:700}
+  .btn-clear-confirm{background:#dc2626;color:white;border:none;padding:11px;border-radius:7px;font-weight:800;cursor:pointer;width:100%;margin-top:12px;font-size:14px}
+  @media print{
+    body{background:white;padding:0}
+    .no-print{display:none !important}
+    .card{box-shadow:none;border:1px solid #ddd}
+    #printTitle{display:block !important}
+    th,td{font-size:10px !important}
+    .new-sched{background:#fef08a !important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  }
+  #printTitle{display:none;text-align:center;margin-bottom:10px}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1 class="no-print">Schedule Timeline</h1>
+
+  <div class="totals no-print">
+    <div class="total-box all"><div class="num" id="totalAll">0</div><div class="lbl">Total Filed</div></div>
+    <div class="total-box shift"><div class="num" id="totalShift">0</div><div class="lbl">Total Change Shift</div></div>
+    <div class="total-box ot"><div class="num" id="totalOT">0</div><div class="lbl">Total Overtime</div></div>
+    <div class="total-box off"><div class="num" id="totalOff">0</div><div class="lbl">Total Change Day Off</div></div>
+  </div>
+  <div class="totals no-print" style="grid-template-columns:1fr 1fr">
+    <div class="total-box ot" style="border-top-color:#7c3aed"><div class="num" id="totalOTHours" style="color:#7c3aed">0</div><div class="lbl">Total OT Hours</div></div>
+    <div class="total-box all" style="border-top-color:#0891b2"><div class="num" id="totalEmployees" style="color:#0891b2">0</div><div class="lbl">Total Employees</div></div>
+  </div>
+  <div class="total-note no-print" id="totalNote">Showing Totals: All Employees</div>
+
+  <!-- ONE PASSWORD MODAL FOR ALL - SAVE / EDIT / DELETE / CLEAR ALL -->
+  <div class="modal no-print" id="passModal">
+    <div class="modal-box">
+      <h2 id="passTitle">Enter Password</h2>
+      <p id="passSub" style="font-size:12px;color:#64748b;margin:6px 0 12px"></p>
+      <label>Password</label>
+      <input type="password" id="filePassword" placeholder="Password" onkeydown="if(event.key==='Enter') confirmPassword()">
+      <div id="passError" style="color:#dc2626;font-size:12px;font-weight:700;margin-top:6px;display:none">Wrong password.</div>
+      <button class="btn-confirm" id="passConfirmBtn" onclick="confirmPassword()">Confirm</button>
+      <button class="btn-close" onclick="closePassModal()">Cancel</button>
+    </div>
+  </div>
+
+  <div class="card no-print">
+    <div class="form-grid">
+      <div><label>Employee Name *</label><input id="empName" placeholder="Employee Name"></div>
+      <div><label>Type</label>
+        <select id="type" onchange="updateForm()">
+          <option>Change Shift</option>
+          <option>Overtime</option>
+          <option>Change Day Off</option>
+        </select>
+      </div>
+      <div><label>Date *</label><input type="date" id="date"></div>
+      <div><label>Department</label><input id="dept" placeholder="Department"></div>
+      <div id="shiftFields" style="display:contents">
+        <div><label>From - Old Schedule</label><input id="fromSched" placeholder="12:00PM - 9:00PM"></div>
+        <div><label>To - New Schedule</label><input id="toSched" placeholder="7:00AM - 4:00PM"></div>
+      </div>
+      <div id="otFields" style="display:none">
+        <div><label>OT Start</label><input type="time" id="otStart" value="18:00"></div>
+        <div><label>OT End</label><input type="time" id="otEnd" value="21:00"></div>
+        <div><label>OT Hours</label><input id="otHours" readonly style="background:#f8fafc"></div>
+        <div><label>OT Reason</label><input id="otReason" placeholder="OT Reason"></div>
+      </div>
+      <div id="dayoffFields" style="display:none">
+        <div><label>Old Day Off</label><select id="oldOff"><option>Sunday</option><option>Monday</option><option>Tuesday</option><option>Wednesday</option><option>Thursday</option><option>Friday</option><option>Saturday</option></select></div>
+        <div><label>New Day Off</label><select id="newOff"><option>Monday</option><option>Tuesday</option><option>Wednesday</option><option>Thursday</option><option>Friday</option><option>Saturday</option><option>Sunday</option></select></div>
+      </div>
+      <button type="button" class="btn" id="addBtn" onclick="askPassword('save')">Add / File</button>
+      <button type="button" id="cancelEdit" onclick="cancelEdit()">Cancel Edit</button>
+      <div id="saveStatus"></div>
+    </div>
+  </div>
+
+  <div class="card no-print">
+    <div class="view-box">
+      <div class="view-title">Schedule Timeline</div>
+      <div class="pdf-row">
+        <button class="btn-view" onclick="viewAll()">View All</button>
+        <button class="btn-clear" onclick="askPassword('clear')">Clear All</button>
+      </div>
+      <div class="pdf-by-name">
+        <label>Convert to PDF by Name</label>
+        <select id="pdfName" onchange="selectPdfName(this.value)">
+          <option value="">Select Name</option>
+        </select>
+        <div class="name-list" id="nameList"></div>
+        <div id="pdfNameInfo" style="font-size:11px;color:#64748b;margin:6px 0"></div>
+        <button class="btn-pdf-name" onclick="exportPDFByName()">Convert to PDF</button>
+      </div>
+      <div class="count" id="countText"></div>
+    </div>
+    <input class="search" id="search" placeholder="Search name..." oninput="render()">
+    <div class="filters">
+      <button class="filter active" id="btnAll" onclick="setFilter('All',this)">All</button>
+      <button class="filter" onclick="setFilter('Change Shift',this)">Change Shift</button>
+      <button class="filter" onclick="setFilter('Overtime',this)">Overtime</button>
+      <button class="filter" onclick="setFilter('Change Day Off',this)">Change Day Off</button>
+    </div>
+  </div>
+
+  <div class="card" id="resultCard">
+    <div id="printTitle">
+      <h2 style="font-size:18px">Schedule Timeline</h2>
+      <p id="printSubtitle" style="font-size:12px;color:#64748b"></p>
+      <p id="printTotals" style="font-size:12px;font-weight:700;margin-top:4px"></p>
+      <p style="font-size:11px">Generated: <span id="printDate"></span></p>
+    </div>
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>Date</th><th>Employee</th><th>Type</th><th>Schedule</th><th class="no-print">Action</th><th>SAP</th></tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+    </div>
+    <div id="empty" class="empty" style="display:none">No schedule yet.</div>
+    <div id="tableTotals" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;font-size:11px;font-weight:700"></div>
+    <div id="tableTotalsLabel" style="font-size:11px;color:#64748b;margin-top:6px;font-weight:600"></div>
+  </div>
+</div>
+
+<script>
+const FILE_PASSWORD = "1234";
+const SAP_LINK = "https://your-sap-link-here.com";
+
+let data = [];
+try{ data = JSON.parse(localStorage.getItem('schedFinal3') || '[]'); }catch(e){ data=[]; }
+let filter = 'All';
+let lastAddedId = null;
+let editingId = null;
+let selectedPdfName = '';
+let pendingAction = ''; // save / edit / delete / clear
+let pendingId = null;
+function saveData(){ try{ localStorage.setItem('schedFinal3', JSON.stringify(data)); }catch(e){} }
+function showStatus(msg, ok){
+  const el=document.getElementById('saveStatus');
+  el.innerText=msg; el.className = ok ? 'ok' : 'err'; el.style.display='block'; el.style.gridColumn='span 2';
+}
+function getTotals(list){
+  const all=list.length;
+  const shift=list.filter(d=>d.type==='Change Shift').length;
+  const ot=list.filter(d=>d.type==='Overtime').length;
+  const off=list.filter(d=>d.type==='Change Day Off').length;
+  let otHours=0;
+  list.forEach(d=>{
+    if(d.type==='Overtime'){
+      const m=(d.detail||'').match(/\(([\d.]+) hours\)/);
+      if(m) otHours+=parseFloat(m[1]);
+    }
+  });
+  const emps=[...new Set(list.map(d=>d.name))].length;
+  return {all,shift,ot,off,otHours,emps};
+}
+function updateTotals(filteredList){
+  const t=getTotals(filteredList);
+  const q=document.getElementById('search').value.trim();
+  const isFiltered = q!=='' || filter!=='All';
+  document.getElementById('totalAll').innerText=t.all;
+  document.getElementById('totalShift').innerText=t.shift;
+  document.getElementById('totalOT').innerText=t.ot;
+  document.getElementById('totalOff').innerText=t.off;
+  document.getElementById('totalOTHours').innerText=t.otHours;
+  document.getElementById('totalEmployees').innerText=t.emps;
+  if(isFiltered){
+    let label='Showing Totals: ';
+    if(q) label+='"'+q+'" ';
+    if(filter!=='All') label+='- '+filter+' ';
+    document.getElementById('totalNote').innerText=label;
+    document.getElementById('totalNote').style.color='#4f46e5';
+    document.getElementById('tableTotalsLabel').innerText='Totals for: ' + label;
+  } else {
+    document.getElementById('totalNote').innerText='Showing Totals: All Employees';
+    document.getElementById('totalNote').style.color='#64748b';
+    document.getElementById('tableTotalsLabel').innerText='Totals: All Employees';
+  }
+  document.getElementById('countText').innerText = 'Total: ' + t.all + '  |  Change Shift: ' + t.shift + '  |  Overtime: ' + t.ot + '  |  Day Off: ' + t.off + '  |  OT Hours: ' + t.otHours + '  |  Employees: ' + t.emps;
+  const tt=document.getElementById('tableTotals');
+  if(filteredList.length===0){ tt.innerHTML=''; }
+  else { tt.innerHTML = '<span style="background:#f1f5f9;padding:6px 10px;border-radius:20px">Total: ' + t.all + '</span><span style="background:#dbeafe;color:#1d4ed8;padding:6px 10px;border-radius:20px">Change Shift: ' + t.shift + '</span><span style="background:#fef3c7;color:#92400e;padding:6px 10px;border-radius:20px">Overtime: ' + t.ot + ' (' + t.otHours + ' hrs)</span><span style="background:#dcfce7;color:#166534;padding:6px 10px;border-radius:20px">Day Off: ' + t.off + '</span>'; }
+}
+// ONE PASSWORD FOR ALL ACTIONS
+function askPassword(action, id){
+  pendingAction=action; pendingId=id||null;
+  if(action==='save'){
+    const name=document.getElementById('empName').value.trim();
+    const date=document.getElementById('date').value;
+    if(!name){ document.getElementById('empName').classList.add('error'); document.getElementById('empName').focus(); showStatus('Please enter Employee Name.', false); return; }
+    if(!date){ document.getElementById('date').classList.add('error'); document.getElementById('date').focus(); showStatus('Please select a Date.', false); return; }
+    document.getElementById('passTitle').innerText='Enter Password to Save';
+    document.getElementById('passSub').innerText='Password is required to save.';
+    document.getElementById('passConfirmBtn').innerText='Confirm & Save';
+    document.getElementById('passConfirmBtn').style.background='#4f46e5';
+  }
+  if(action==='edit'){
+    const d=data.find(x=>x.id===id);
+    document.getElementById('passTitle').innerText='Enter Password to Edit';
+    document.getElementById('passSub').innerText='Edit: ' + (d ? d.name + ' - ' + d.type : '');
+    document.getElementById('passConfirmBtn').innerText='Confirm & Edit';
+    document.getElementById('passConfirmBtn').style.background='#2563eb';
+  }
+  if(action==='delete'){
+    const d=data.find(x=>x.id===id);
+    document.getElementById('passTitle').innerText='Enter Password to Delete';
+    document.getElementById('passSub').innerText='Delete: ' + (d ? d.name + ' - ' + d.type : '') + '. This cannot be undone.';
+    document.getElementById('passConfirmBtn').innerText='Confirm & Delete';
+    document.getElementById('passConfirmBtn').style.background='#dc2626';
+  }
+  if(action==='clear'){
+    if(data.length===0){ alert('No data to clear.'); return; }
+    const t=getTotals(data);
+    document.getElementById('passTitle').innerText='Enter Password to Clear All';
+    document.getElementById('passSub').innerText='This will delete ALL ' + t.all + ' records (Change Shift: ' + t.shift + ', Overtime: ' + t.ot + ', Day Off: ' + t.off + '). This cannot be undone.';
+    document.getElementById('passConfirmBtn').innerText='Confirm & Clear All';
+    document.getElementById('passConfirmBtn').style.background='#dc2626';
+  }
+  document.getElementById('filePassword').value='';
+  document.getElementById('passError').style.display='none';
+  document.getElementById('passModal').classList.add('show');
+  setTimeout(()=>document.getElementById('filePassword').focus(),100);
+}
+function closePassModal(){ document.getElementById('passModal').classList.remove('show'); pendingAction=''; pendingId=null; }
+function confirmPassword(){
+  const p=document.getElementById('filePassword').value;
+  if(p!==FILE_PASSWORD){ document.getElementById('passError').style.display='block'; document.getElementById('filePassword').value=''; document.getElementById('filePassword').focus(); return; }
+  const action=pendingAction; const id=pendingId;
+  closePassModal();
+  if(action==='save') addItem();
+  if(action==='edit') doEdit(id);
+  if(action==='delete') doDelete(id);
+  if(action==='clear') doClearAll();
+}
+function updateForm(){
+  const t = document.getElementById('type').value;
+  document.getElementById('shiftFields').style.display = t==='Change Shift' ? 'contents' : 'none';
+  document.getElementById('otFields').style.display = t==='Overtime' ? 'contents' : 'none';
+  document.getElementById('dayoffFields').style.display = t==='Change Day Off' ? 'contents' : 'none';
+  calcOT();
+}
+function calcOT(){
+  const s=document.getElementById('otStart').value, e=document.getElementById('otEnd').value;
+  if(!s||!e) return;
+  let sh=parseInt(s.split(':')[0]), sm=parseInt(s.split(':')[1]);
+  let eh=parseInt(e.split(':')[0]), em=parseInt(e.split(':')[1]);
+  let diff=(eh*60+em)-(sh*60+sm); if(diff<0) diff+=1440;
+  document.getElementById('otHours').value = (diff/60) + ' hours';
+}
+document.getElementById('otStart').addEventListener('change',calcOT);
+document.getElementBy
